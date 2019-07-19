@@ -23,7 +23,7 @@ app.use(cors());
 
 passport.use(new JwtStrategy(passportOpts, function (jwtPayload, done) {
   const expirationDate = new Date(jwtPayload.exp * 1000);
-  if(expirationDate < new Date()) {
+  if (expirationDate < new Date()) {
     return done(null, false);
   }
   done(null, jwtPayload);
@@ -33,45 +33,56 @@ passport.serializeUser(function (user, done) {
   done(null, user.username)
 });
 
-app.post('/login', function (req, res) { 
-    const {username, password} = req.body;
-    const user = { 
-        'username': username, 
-        'role': 'admin'
-    };
-    const token = jwt.sign(user, SECRET, { expiresIn: 600 }) 
-    const refreshToken = randtoken.uid(256);
-    refreshTokens[refreshToken] = username;
-    res.json({jwt: token, refreshToken: refreshToken});
+app.post('/login', function (req, res) {
+  const { username, password } = req.body;
+  const user = {
+    'username': username,
+    'role': 'admin'
+  };
+  const token = jwt.sign(user, SECRET, { expiresIn: 600 })
+  const refreshToken = randtoken.uid(256);
+  refreshTokens[refreshToken] = username;
+  res.json({ jwt: token, refreshToken: refreshToken });
 });
 
-app.post('/logout', function (req, res) { 
+app.post('/logout', function (req, res) {
   const refreshToken = req.body.refreshToken;
-  if (refreshToken in refreshTokens) { 
+  if (refreshToken in refreshTokens) {
     delete refreshTokens[refreshToken];
-  } 
-  res.sendStatus(204); 
+  }
+  res.sendStatus(204);
 });
 
 app.post('/refresh', function (req, res) {
-    const refreshToken = req.body.refreshToken;
-    
+  const refreshToken = req.body.refreshToken;
 
-    if (refreshToken in refreshTokens) {
-      const user = {
-        'username': refreshTokens[refreshToken],
-        'role': 'admin'
-      }
-      const token = jwt.sign(user, SECRET, { expiresIn: 600 });
-      res.json({jwt: token})
+
+  if (refreshToken in refreshTokens) {
+    const user = {
+      'username': refreshTokens[refreshToken],
+      'role': 'admin'
     }
-    else {
-      res.sendStatus(401);
-    }
+    const token = jwt.sign(user, SECRET, { expiresIn: 600 });
+    res.json({ jwt: token })
+  }
+  else {
+    res.sendStatus(401);
+  }
 });
 
-app.get('/random', passport.authenticate('jwt'), function (req, res) {
-  res.json({value: Math.floor(Math.random()*100) });
+app.get('/auth', function (req, res) {
+  try {
+    jwt.verify(req.headers.authorization.replace('Bearer ', ''), SECRET);
+    res.json('authorized');
+  }
+  catch (error) {
+    console.log(error);
+    if (error.message == "invalid signature" ||error.message ==  "jwt malformed") {
+      res.sendStatus(403);
+    } else if (error.message = "jwt expired") {
+      res.sendStatus(401);
+    }
+  }
 })
 
 app.listen(8080);
