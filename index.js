@@ -56,7 +56,6 @@ app.post('/logout', function (req, res) {
 app.post('/refresh', function (req, res) {
   const refreshToken = req.body.refreshToken;
 
-
   if (refreshToken in refreshTokens) {
     const user = {
       'username': refreshTokens[refreshToken],
@@ -66,7 +65,7 @@ app.post('/refresh', function (req, res) {
     res.json({ jwt: token })
   }
   else {
-    res.sendStatus(401);
+    res.sendStatus(403);
   }
 });
 
